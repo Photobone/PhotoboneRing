@@ -4,55 +4,49 @@
 #include <Arduino.h>
 
 #include "common.h"
+#include "animation.h"
 
 #define LED_PIN 0
-#define NUMPIXELS 24
 #define NUMBYTES NUMPIXELS * 3
 
 static uint8_t pixelsData[NUMBYTES];
 
 float currentRgb[3];
 
+#define H_60 0.166f // = 60 / 360
 void hsv2Rgb(float h, float s, float v, float *rgb)
 {
-	float s = s / 100;
-	float v = v / 100;
-	float C = s * v;
-	float X = C * (1 - abs(fmod(H / 60.0, 2) - 1));
-	float m = v - C;
-	float r, g, b;
-	if (h >= 0 && h < 60)
-	{
-		r = C, g = X, b = 0;
-	}
-	else if (h >= 60 && h < 120)
-	{
-		r = X, g = C, b = 0;
-	}
-	else if (h >= 120 && h < 180)
-	{
-		r = 0, g = C, b = X;
-	}
-	else if (h >= 180 && h < 240)
-	{
-		r = 0, g = X, b = C;
-	}
-	else if (h >= 240 && h < 300)
-	{
-		r = X, g = 0, b = C;
-	}
-	else
-	{
-		r = C, g = 0, b = X;
-	}
+	h = fmod(h, 1);
 
-	uint8_t *pixelData = pixelsData + pixelIx * 3;
-	*R = (r + m) * 255;
-	*G = (g + m) * 255;
-	*B = (b + m) * 255;
+	const float C = s * v;
+	const float X = C * (1 - abs(fmod(h * 6, 2) - 1));
+	const float m = v - C;
+	
+	float r, g, b;
+	if (h < H_60)
+		r = C, g = X, b = 0;
+
+	else if (h < 2 * H_60)
+		r = X, g = C, b = 0;
+
+	else if (h < 3 * H_60)
+		r = 0, g = C, b = X;
+
+	else if (h < 4 * H_60)
+		r = 0, g = X, b = C;
+
+	else if (h < 5 * H_60)
+		r = X, g = 0, b = C;
+
+	else
+		r = C, g = 0, b = X;
+
+	rgb[0] = r + m;
+	rgb[1] = g + m;
+	rgb[2] = b + m;
 }
 
-void storeColor(uint8_t pixelIx)
+void storeCurrentRgb(uint8_t pixelIx)
 {
 	uint8_t *pixelData = pixelsData + pixelIx * 3;
 	pixelData[0] = static_cast<uint8_t>(currentRgb[1] * 255.0f);
@@ -80,7 +74,13 @@ void ledLoop()
 	lastMillis = currentMillis;
 
 	// Update pixel data
-	photoIdleLoop();
+	{
+		for (uint8_t i = 0; i < NUMPIXELS; i++)
+		{
+			hsv2Rgb((i + currentMillis / 64) * (1.0f / NUMPIXELS), 1.0f, 1.0f, currentRgb);
+			storeCurrentRgb(i);
+		}
+	}
 
 	// Upload the data
 	{
