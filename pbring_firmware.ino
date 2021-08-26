@@ -4,11 +4,11 @@
 
 void setup() {
 	ledSetup();
-	usbSetup();
+//	usbSetup();
 }
 
 void loop() {
 	currentMillis = millis();
-	usbLoop();
+//	usbLoop();
 	ledLoop();
 }

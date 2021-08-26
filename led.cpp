@@ -67,20 +67,15 @@ void ledLoop()
 {
 	static unsigned long lastMillis = 0;
 
-	// Update max once per 100 ms
-	if (currentMillis < lastMillis + 100)
+	// Update max once per 16 ms
+	if (currentMillis < lastMillis + 16)
 		return;
 
 	lastMillis = currentMillis;
 
 	// Update pixel data
-	{
-		for (uint8_t i = 0; i < NUMPIXELS; i++)
-		{
-			hsv2Rgb((i + currentMillis / 64) * (1.0f / NUMPIXELS), 1.0f, 1.0f, currentRgb);
-			storeCurrentRgb(i);
-		}
-	}
+  updateAnimation();	
+
 
 	// Upload the data
 	{

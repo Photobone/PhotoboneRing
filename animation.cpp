@@ -1,18 +1,13 @@
 #include "animation.h"
 #include "led.h"
+#include "common.h"
+#include <Arduino.h>
 
 
-//extern float currentRgb[3];
-//void storeColor(uint8_t pixelIx);
-//void hsv2Rgb(float h, float s, float v, float *rgb);
-
-
-
-
-float[] GREEN = { 0.0f, 0.0f, 1.0f };
-float[] RED = { 1.0f, 0.0f, 0.0f };
-float[] WHITE = { 1.0f, 1.0f, 1.0f };
-float[] BLACK = { 0.0f, 0.0f, 0.0f };
+float GREEN[] = { 0.0f, 1.0f, 0.0f };
+float RED[] = { 1.0f, 0.0f, 0.0f };
+float WHITE[] = { 1.0f, 1.0f, 1.0f };
+float BLACK[] = { 0.0f, 0.0f, 0.0f };
 
 
 
@@ -24,7 +19,10 @@ float[] BLACK = { 0.0f, 0.0f, 0.0f };
 
   int twiStart = UP_DELAY_MS * NUMPIXELS + ALL_ON_MS;
   if (progress < twiStart) {
-    memcpy(currentRgb, rgb, sizeof(float) * 3);
+    currentRgb[0] = rgb[0];
+    currentRgb[1] = rgb[1];
+    currentRgb[2] = rgb[2];
+    
     
     for(int i = 0; i < NUMPIXELS; i++) {
       if (progress < i * UP_DELAY_MS) {
@@ -34,7 +32,7 @@ float[] BLACK = { 0.0f, 0.0f, 0.0f };
       }
 
       
-      storeColor(i);
+      storeCurrentRgb(i);
     }
 
   } else {
@@ -45,47 +43,47 @@ float[] BLACK = { 0.0f, 0.0f, 0.0f };
     currentRgb[2] = rgb[2] * factor;
 
     for(int i = 0; i < NUMPIXELS; i++) {      
-      storeColor(i);
+      storeCurrentRgb(i);
     }
   }
 
 }
 
 /*private*/ void photoIdleLoop() {
-  const int ROTATION_DELAY = 350;
+  const int ROTATION_DELAY = 250;
   const int ROTATION_ALPHA_X = 3;
 
 
   long progressMod = currentMillis % (ROTATION_DELAY * ROTATION_ALPHA_X * NUMPIXELS);
 
-  for(int i = 0; i < NUMPIXELS; i++) {
+  for(uint8_t i = 0; i < NUMPIXELS; i++) {
 
-    float h = ((double)i + (double)progressMod / ROTATION_DELAY) / NUMPIXELS;
+    float h = (i + (double)progressMod / ROTATION_DELAY) / NUMPIXELS;
     while (h > 360) h -= 360;
     
-//    float alpha = (i + (double)progressMod / ROTATION_DELAY / ROTATION_ALPHA_X) / NUMPIXELS;
-//    while (alpha > 1) alpha -= 1;
-//    alpha = max(0, abs(alpha - 0.5f) * 6 - 2);
+    float alpha = (i + (double)progressMod / ROTATION_DELAY * ROTATION_ALPHA_X) / NUMPIXELS;
+    while (alpha > 1) alpha -= 1;
+    alpha = max(0, abs(alpha - 0.5f) * 5 - 1.5f);
 
 
-    hsv2Rgb(h, 1.0f, 0.1f, currentRgb);
+    hsv2Rgb(h, 1.0f, 0.05f * alpha, currentRgb);
     currentRgb[0] *= 3;
     currentRgb[1] *= 1;
     currentRgb[2] *= 1.35f;
     
-    storeColor(i);
+    storeCurrentRgb(i);
   }    
   
 }
 
 
-/*private*/ void photoTimerLoop() {
-  const int ROTATION_DELAY_START = 100;
-  const int ROTATION_DELAY_END = 25;
+/*private*/ void photoTimerLoop(long progress) {
+  const int ROTATION_DELAY_START = 200;
+  const int ROTATION_DELAY_END = 10;
 
-  const int ROTATION_SPEEDUP_DURATION_MS = 2000;
+  const int ROTATION_SPEEDUP_DURATION_MS = 3500;
   
-  const int BLINK_DURATION_MS = 2000;
+  const int BLINK_DURATION_MS = 3000;
   const int BLINK_INTERVAL_MS = 150;
 
 
@@ -94,11 +92,11 @@ float[] BLACK = { 0.0f, 0.0f, 0.0f };
     int rotationDelay = (ROTATION_DELAY_START - ROTATION_DELAY_END) * (ROTATION_SPEEDUP_DURATION_MS - progress) / ROTATION_SPEEDUP_DURATION_MS + ROTATION_DELAY_END;
 
     uint8_t r, g, b;
-    float bri = 0.1f * progress * 3 / ROTATION_SPEEDUP_DURATION_MS;
+    float bri = 0.05f * progress * 3 / ROTATION_SPEEDUP_DURATION_MS;
         
-    for(int i = 0; i < NUMPIXELS; i++) {
+    for(uint8_t i = 0; i < NUMPIXELS; i++) {
   
-      float h = ((double)i + (double)progress / rotationDelay) / NUMPIXELS;
+      float h = (i + (double)progress / rotationDelay) / NUMPIXELS;
       while (h > 360) h -= 360;
  
       hsv2Rgb(h, 1.0f, 0.1f, currentRgb);
@@ -106,27 +104,33 @@ float[] BLACK = { 0.0f, 0.0f, 0.0f };
       currentRgb[1] *= 1;
       currentRgb[2] *= 1.35f;
       
-      storeColor(i);
+      storeCurrentRgb(i);
     }
     
   } else if (progress < BLINK_DURATION_MS + ROTATION_SPEEDUP_DURATION_MS) {
 
     if (((progress - ROTATION_SPEEDUP_DURATION_MS) / BLINK_INTERVAL_MS) % 2) {
-      memcpy(currentRgb, WHITE, sizeof(float) * 3);
+      currentRgb[0] = WHITE[0] * 0.6f;
+      currentRgb[1] = WHITE[1] * 0.6f;
+      currentRgb[2] = WHITE[2] * 0.6f;
     } else {
-      memcpy(currentRgb, BLACK, sizeof(float) * 3);  
+      currentRgb[0] = BLACK[0];
+      currentRgb[1] = BLACK[1];
+      currentRgb[2] = BLACK[2];
     }
     
     
     for(int i = 0; i < NUMPIXELS; i++) {
-      storeColor(i);
+      storeCurrentRgb(i);
     }
     
   } else {
-    memcpy(currentRgb, BLACK, sizeof(float) * 3);
+    currentRgb[0] = BLACK[0];
+    currentRgb[1] = BLACK[1];
+    currentRgb[2] = BLACK[2];
     
-    for(int i = 0; i < NUMPIXELS; i++) {
-      storeColor(i);
+    for(uint8_t i = 0; i < NUMPIXELS; i++) {
+      storeCurrentRgb(i);
     }
   }
 
@@ -134,18 +138,36 @@ float[] BLACK = { 0.0f, 0.0f, 0.0f };
 }
 
 
-ANIMATION lastAnimation = NULL_ANIMATION;
-long lastAnimationStart = 0
-void updateAnimation(ANIMATION anim) {
+ANIMATION resolveAnimation() {
 
-  if (lastAnimation != anim) {
-    lastAnimation = anim;
+  if (currentMillis < 1500) {
+    return POWER_UP;
+  } else if (currentMillis < 10000) {
+    return PHOTO_IDLE;
+  } else if (currentMillis < 20000) {
+    return PHOTO_TIMER;
+  } else {
+    return PHOTO_IDLE;
+  }
+  
+}
+
+
+
+ANIMATION lastAnimation = NULL_ANIMATION;
+long lastAnimationStart = 0;
+void updateAnimation() {
+
+  ANIMATION currentAnim = resolveAnimation();
+
+  if (lastAnimation != currentAnim) {
+    lastAnimation = currentAnim;
     lastAnimationStart = currentMillis;
   }
   long sinceStart = currentMillis - lastAnimationStart;
   
 
-  switch(anim) {
+  switch(currentAnim) {
     case POWER_UP: 
       systemFlash(sinceStart, GREEN);
       break;
@@ -154,13 +176,11 @@ void updateAnimation(ANIMATION anim) {
       break;
 
     case PHOTO_IDLE:
-      photoIdleLoop(progress);
+      photoIdleLoop();
       break;
     case PHOTO_TIMER:
-      photoTimerLoop(progress);
+      photoTimerLoop(sinceStart);
       break;
   }
-
-  ring.show();
 
 }

@@ -13,4 +13,4 @@ typedef enum ANIMATION {
 } ANIMATION;
 
 
-void updateAnimation(ANIMATION a);
+void updateAnimation();
