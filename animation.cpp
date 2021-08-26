@@ -1,6 +1,7 @@
 #include "animation.h"
 #include "led.h"
 #include "common.h"
+#include "usb.h"
 #include <Arduino.h>
 
 float GREEN[] = {0.0f, 1.0f, 0.0f};
@@ -19,7 +20,7 @@ float BLACK[] = {0.0f, 0.0f, 0.0f};
 
 	const bool cond = progress < twiStart;
 
-	const float factor = cond ? 1 : max(0, (float)(TWI_MS - (progress - twiStart)) / TWI_MS);
+	const float factor = cond ? 1 : max(0, static_cast<float>(TWI_MS - (progress - twiStart)) / TWI_MS);
 	currentRgb[0] = rgb[0] * factor;
 	currentRgb[1] = rgb[1] * factor;
 	currentRgb[2] = rgb[2] * factor;
@@ -28,7 +29,7 @@ float BLACK[] = {0.0f, 0.0f, 0.0f};
 
 	if (cond)
 	{
-		for (; i < progress / UP_DELAY_MS; i++)
+		for (; i < min(NUMPIXELS, progress / UP_DELAY_MS); i++)
 		{
 			storeCurrentRgb(i);
 		}
@@ -103,45 +104,12 @@ float rainbowOffset = 0;
 	}
 }
 
-inline ANIMATION resolveAnimation()
-{
-	if (currentMillis < 1500)
-	{
-		return POWER_UP;
-	}
-
-	long period = currentMillis % 15000;
-	if (period < 11000)
-	{
-		return PHOTO_TIMER;
-	}
-	else
-	{
-		return PHOTO_IDLE;
-	}
-
-	//
-	//	if (currentMillis < 1500)
-	//	{
-	//		return POWER_UP;
-	//	}
-	//	else if (currentMillis < 10000)
-	//	{
-	//		return PHOTO_IDLE;
-	//	}
-	//	else if (currentMillis < 20000)
-	//	{
-	//		return PHOTO_TIMER;
-	//	}
-	//	else
-	//	{
-	//		return PHOTO_IDLE;
-	//	}
-}
+#include "animation_resolve.inc.h"
 
 ANIMATION lastAnimation = NULL_BLACK;
 long lastAnimationStart = 0;
 long lastFrameTime = 0;
+
 void updateAnimation()
 {
 	ANIMATION currentAnim = resolveAnimation();
@@ -154,6 +122,9 @@ void updateAnimation()
 	long sinceStart = currentMillis - lastAnimationStart;
 	uint16_t deltaMs = currentMillis - lastFrameTime;
 	lastFrameTime = currentMillis;
+
+	/*long sinceStart = 500;
+	uint16_t deltaMs = 0;*/
 
 	switch (currentAnim)
 	{

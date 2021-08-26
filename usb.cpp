@@ -13,7 +13,7 @@ extern "C"
 bool isConnected = false;
 uint8_t countdownValue = -1;
 
-static unsigned long lastHeartbeatMillis = 0;
+static unsigned long heartbeatTimeoutMillis = 0;
 
 void usbSetup()
 {
@@ -36,7 +36,7 @@ void usbLoop()
 {
 	usbPoll();
 
-	isConnected = currentMillis <= lastHeartbeatMillis + 10000;
+	isConnected = currentMillis < heartbeatTimeoutMillis;
 }
 
 usbMsgLen_t usbFunctionSetup(uchar data[8])
@@ -47,15 +47,20 @@ usbMsgLen_t usbFunctionSetup(uchar data[8])
 		return 0;
 
 	if (rq->bRequest == USBRQ_HID_SET_REPORT)
+	{
 		return USB_NO_MSG;
+	}
 
 	return 0;
 }
 
 uint8_t usbFunctionWrite(uint8_t *data, uint8_t len)
 {
+	/*if (len == 0 || !isExpectingMessage)
+		return !isExpectingMessage;*/
+
 	countdownValue = *data;
-	lastHeartbeatMillis = currentMillis;
+	heartbeatTimeoutMillis = currentMillis + 5000;
 
 	// We've received all data, thanks
 	return 1;
