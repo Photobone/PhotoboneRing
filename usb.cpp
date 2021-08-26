@@ -8,6 +8,8 @@ extern "C"
 #include "usbdrv.h"
 }
 
+uint8_t countdownValue = -1;
+
 static uint8_t receiveBuffer[1];
 static uint8_t *receiveAddr = 0;
 static uint8_t receiveBytesRemaining = 0;
@@ -54,11 +56,19 @@ usbMsgLen_t usbFunctionSetup(uchar data[8])
 uint8_t usbFunctionWrite(uint8_t *data, uint8_t len)
 {
 	len = (len <= receiveBytesRemaining) ? len : receiveBytesRemaining;
+	if(!len)
+		return !receiveBytesRemaining;
 
 	memcpy(receiveAddr, data, len);
 
 	receiveAddr += len;
 	receiveBytesRemaining -= len;
+
+	// Parse the read packet
+	if(!receiveBytesRemaining) {
+		countdownValue = receiveBuffer[0];
+		digitalWrite(1, countdownValue < 2);
+	}
 
 	return !receiveBytesRemaining;
 }
