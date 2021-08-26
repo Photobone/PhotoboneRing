@@ -10,6 +10,7 @@ float BLACK[] = {0.0f, 0.0f, 0.0f};
 
 /*private*/ void systemFlash(uint16_t progress, const float *rgb)
 {
+
 	const int UP_DELAY_MS = 13;
 	const int ALL_ON_MS = 100;
 	const int TWI_MS = 150;
@@ -43,22 +44,24 @@ float BLACK[] = {0.0f, 0.0f, 0.0f};
 	}
 }
 
-/*private*/ void photoIdleLoop()
-{
-	const int ROTATION_DELAY = 250;
-	const int ROTATION_ALPHA_X = 3;
+#define IDLE_RAINBOW_SPEED 0.0001f
+#define RAINBOW_ALPHA_FACTOR 3
 
-	const uint32_t progressMod = static_cast<uint16_t>(currentMillis % (ROTATION_DELAY * ROTATION_ALPHA_X * NUMPIXELS));
+float rainbowOffset = 0;
+/*private*/ void rainbowUpdate(uint16_t deltaMs, float speed, bool enableAlpha, float brightness)
+{
+
+	rainbowOffset += static_cast<float>(deltaMs) * speed;
+	rainbowOffset = fmod(rainbowOffset, 1);
 
 	for (uint8_t i = 0; i < NUMPIXELS; i++)
 	{
 
-		float h = (i + static_cast<float>(progressMod) / ROTATION_DELAY) / NUMPIXELS;
+		float h = static_cast<float>(i) / NUMPIXELS + rainbowOffset;
 
-		float alpha = fmod((i + static_cast<float>(progressMod) / ROTATION_DELAY * ROTATION_ALPHA_X) / NUMPIXELS, 1.0f);
-		alpha = max(0, abs(alpha - 0.5f) * 5 - 1.5f);
+		float alpha = enableAlpha ? max(0, abs(fmod(static_cast<float>(i) / NUMPIXELS + rainbowOffset * RAINBOW_ALPHA_FACTOR, 1.0f) - 0.5f) * 5 - 1.5f) : 1;
 
-		hsv2Rgb(h, 1.0f, 0.05f * alpha, currentRgb);
+		hsv2Rgb(h, 1.0f, 0.05f * alpha * brightness, currentRgb);
 		currentRgb[0] *= 3;
 		currentRgb[1] *= 1;
 		currentRgb[2] *= 1.35f;
@@ -67,10 +70,10 @@ float BLACK[] = {0.0f, 0.0f, 0.0f};
 	}
 }
 
-/*private*/ void photoTimerLoop(long progress)
+/*private*/ void photoTimerLoop(uint32_t progress, uint16_t deltaMs)
 {
-	const int ROTATION_DELAY_START = 200;
-	const int ROTATION_DELAY_END = 10;
+	const float ROTATION_SPEED_START = 0.00015f;
+	const float ROTATION_SPEED_END = 0.006f;
 
 	const int ROTATION_SPEEDUP_DURATION_MS = 3500;
 
@@ -80,23 +83,8 @@ float BLACK[] = {0.0f, 0.0f, 0.0f};
 	if (progress < ROTATION_SPEEDUP_DURATION_MS)
 	{
 
-		const int rotationDelay = (ROTATION_DELAY_START - ROTATION_DELAY_END) * (ROTATION_SPEEDUP_DURATION_MS - progress) / ROTATION_SPEEDUP_DURATION_MS + ROTATION_DELAY_END;
-
-		uint8_t r, g, b;
-		float bri = 0.05f * progress * 3 / ROTATION_SPEEDUP_DURATION_MS;
-
-		for (uint8_t i = 0; i < NUMPIXELS; i++)
-		{
-
-			float h = (i + (float)progress / rotationDelay) / NUMPIXELS;
-
-			hsv2Rgb(h, 1.0f, 0.1f, currentRgb);
-			currentRgb[0] *= 3;
-			currentRgb[1] *= 1;
-			currentRgb[2] *= 1.35f;
-
-			storeCurrentRgb(i);
-		}
+		float speedup = static_cast<float>(progress) / ROTATION_SPEEDUP_DURATION_MS;
+		rainbowUpdate(deltaMs, speedup * (ROTATION_SPEED_END - ROTATION_SPEED_START) + ROTATION_SPEED_START, 0, speedup + 1);
 	}
 	else
 	{
@@ -117,16 +105,13 @@ float BLACK[] = {0.0f, 0.0f, 0.0f};
 
 inline ANIMATION resolveAnimation()
 {
-
 	if (currentMillis < 1500)
 	{
 		return POWER_UP;
 	}
-	else if (currentMillis < 10000)
-	{
-		return PHOTO_IDLE;
-	}
-	else if (currentMillis < 20000)
+
+	long period = currentMillis % 15000;
+	if (period < 11000)
 	{
 		return PHOTO_TIMER;
 	}
@@ -134,10 +119,29 @@ inline ANIMATION resolveAnimation()
 	{
 		return PHOTO_IDLE;
 	}
+
+	//
+	//	if (currentMillis < 1500)
+	//	{
+	//		return POWER_UP;
+	//	}
+	//	else if (currentMillis < 10000)
+	//	{
+	//		return PHOTO_IDLE;
+	//	}
+	//	else if (currentMillis < 20000)
+	//	{
+	//		return PHOTO_TIMER;
+	//	}
+	//	else
+	//	{
+	//		return PHOTO_IDLE;
+	//	}
 }
 
 ANIMATION lastAnimation = NULL_BLACK;
 long lastAnimationStart = 0;
+long lastFrameTime = 0;
 void updateAnimation()
 {
 	ANIMATION currentAnim = resolveAnimation();
@@ -148,6 +152,8 @@ void updateAnimation()
 		lastAnimationStart = currentMillis;
 	}
 	long sinceStart = currentMillis - lastAnimationStart;
+	uint16_t deltaMs = currentMillis - lastFrameTime;
+	lastFrameTime = currentMillis;
 
 	switch (currentAnim)
 	{
@@ -158,11 +164,11 @@ void updateAnimation()
 		break;
 
 	case PHOTO_IDLE:
-		photoIdleLoop();
+		rainbowUpdate(deltaMs, IDLE_RAINBOW_SPEED, 1, 1.0f);
 		break;
 
 	case PHOTO_TIMER:
-		photoTimerLoop(sinceStart);
+		photoTimerLoop(sinceStart, deltaMs);
 		break;
 
 		/*case NULL_BLACK:
