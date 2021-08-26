@@ -19,10 +19,11 @@ void hsv2Rgb(float h, float s, float v, float *rgb)
 	h = fmod(h, 1);
 
 	const float C = s * v;
-	const float X = C * (1 - abs(fmod(h * 6, 2) - 1));
 	const float m = v - C;
-	
+	const float X = C * (1 - abs(fmod(h * 6, 2) - 1));
+
 	float r, g, b;
+	
 	if (h < H_60)
 		r = C, g = X, b = 0;
 
@@ -74,8 +75,7 @@ void ledLoop()
 	lastMillis = currentMillis;
 
 	// Update pixel data
-  updateAnimation();	
-
+	updateAnimation();
 
 	// Upload the data
 	{

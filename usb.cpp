@@ -15,10 +15,6 @@ uint8_t countdownValue = -1;
 
 static unsigned long lastHeartbeatMillis = 0;
 
-static uint8_t receiveBuffer[1];
-static uint8_t *receiveAddr = 0;
-static uint8_t receiveBytesRemaining = 0;
-
 void usbSetup()
 {
 	cli();
@@ -45,39 +41,24 @@ void usbLoop()
 
 usbMsgLen_t usbFunctionSetup(uchar data[8])
 {
-	usbRequest_t *rq = (usbRequest_t *)((void *)data);
+	usbRequest_t *rq = reinterpret_cast<usbRequest_t *>(data);
 
 	if ((rq->bmRequestType & USBRQ_TYPE_MASK) != USBRQ_TYPE_CLASS)
 		return 0;
 
-	if (rq->bRequest == USBRQ_HID_SET_REPORT && !receiveBytesRemaining)
-	{
-		receiveAddr = receiveBuffer;
-		receiveBytesRemaining = 1;
+	if (rq->bRequest == USBRQ_HID_SET_REPORT)
 		return USB_NO_MSG;
-	}
 
 	return 0;
 }
 
 uint8_t usbFunctionWrite(uint8_t *data, uint8_t len)
 {
-	len = (len <= receiveBytesRemaining) ? len : receiveBytesRemaining;
-	if(!len)
-		return !receiveBytesRemaining;
+	countdownValue = *data;
+	lastHeartbeatMillis = currentMillis;
 
-	memcpy(receiveAddr, data, len);
-
-	receiveAddr += len;
-	receiveBytesRemaining -= len;
-
-	// Parse the read packet
-	if(!receiveBytesRemaining) {
-		countdownValue = receiveBuffer[0];
-		lastHeartbeatMillis = currentMillis;
-	}
-
-	return !receiveBytesRemaining;
+	// We've received all data, thanks
+	return 1;
 }
 
 PROGMEM const char usbHidReportDescriptor[22] = {
