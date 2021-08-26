@@ -1,10 +1,18 @@
+#include "led_driver.h"
+
+
 void setup() {
-  
+  ledSetup();
 }
 
+long startTime = 0;
 void loop() {
-	digitalWrite(1, HIGH);
-	delay(500);
-	digitalWrite(1, LOW);
-	delay(1000);
+  if (millis() < 1500) {
+    ledLoop(POWER_UP, millis());
+  } else if(millis() < 10000) {
+	  ledLoop(PHOTO_IDLE, millis());
+  } else {
+    if (startTime == 0) startTime = millis();
+    ledLoop(PHOTO_TIMER, millis() - startTime);
+  }
 }
