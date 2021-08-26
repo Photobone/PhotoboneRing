@@ -58,13 +58,20 @@ Adafruit_NeoPixel ring = Adafruit_NeoPixel(NUMPIXELS, LED_PIN, NEO_RGB + NEO_KHZ
 
 /*private*/ void photoIdleLoop(long progress, uint8_t brightness) {
   const int ROTATION_DELAY = 50;
-//  const int ROTATION_ALPHA_DELAY = 150;
+  const int ROTATION_ALPHA_X = 3;
 
+
+  long progressMod = progress % (ROTATION_DELAY * ROTATION_ALPHA_X * NUMPIXELS);
 
   for(int i = 0; i < NUMPIXELS; i++) {
 
-    int h = ((int)((i + (double)progress / ROTATION_DELAY) * 360 / NUMPIXELS)) % 360;
-//    float alpha = (i + (double)progress / ROTATION_DELAY) / NUMPIXELS / 2 + 0.5f;
+    float h = (i + (double)progressMod / ROTATION_DELAY) * 360 / NUMPIXELS;
+    while (h > 360) h -= 360;
+    
+    float alpha = (i + (double)progressMod / ROTATION_DELAY / ROTATION_ALPHA_X) / NUMPIXELS;
+    while (alpha > 1) alpha -= 1;
+    alpha = max(0, abs(alpha - 0.5f) * 6 - 2);
+
     
     uint8_t r, g, b;
 
