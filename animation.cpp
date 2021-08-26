@@ -154,7 +154,7 @@ ANIMATION resolveAnimation() {
 
 
 
-ANIMATION lastAnimation = NULL_ANIMATION;
+ANIMATION lastAnimation = NULL_BLACK;
 long lastAnimationStart = 0;
 void updateAnimation() {
 
@@ -181,6 +181,17 @@ void updateAnimation() {
     case PHOTO_TIMER:
       photoTimerLoop(sinceStart);
       break;
+
+    case NULL_BLACK:
+      currentRgb[0] = BLACK[0];
+      currentRgb[1] = BLACK[1];
+      currentRgb[2] = BLACK[2];
+    
+      for(uint8_t i = 0; i < NUMPIXELS; i++) {
+        storeCurrentRgb(i);
+      }
+      break;
+      
   }
 
 }

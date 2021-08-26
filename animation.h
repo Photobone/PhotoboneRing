@@ -2,7 +2,7 @@
 
 typedef enum ANIMATION { 
 
-  NULL_ANIMATION=0,
+  NULL_BLACK=0,
   
   POWER_UP, 
   COMM_ERR,
