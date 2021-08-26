@@ -1,10 +1,16 @@
 #pragma once
 
-enum class Animation {
-	connected,
-	idle,
-	shooting,
-	...
-};
+typedef enum ANIMATION { 
 
-void updateAnimation(Animation a);
+  NULL_ANIMATION=0,
+  
+  POWER_UP, 
+  COMM_ERR,
+  
+  PHOTO_IDLE, 
+  PHOTO_TIMER
+  
+} ANIMATION;
+
+
+void updateAnimation(ANIMATION a);

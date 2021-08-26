@@ -6,7 +6,6 @@
 #include "common.h"
 
 #define LED_PIN 0
-#define NUMPIXELS 24
 #define NUMBYTES NUMPIXELS * 3
 
 static uint8_t pixelsData[NUMBYTES];

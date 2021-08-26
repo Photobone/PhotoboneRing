@@ -1,5 +1,7 @@
 #pragma once
 
+#define NUMPIXELS 24
+
 void ledSetup();
 void ledLoop();
 
