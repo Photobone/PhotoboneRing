@@ -8,7 +8,12 @@ extern "C"
 #include "usbdrv.h"
 }
 
+#include "common.h"
+
+bool isConnected = false;
 uint8_t countdownValue = -1;
+
+static unsigned long lastHeartbeatMillis = 0;
 
 static uint8_t receiveBuffer[1];
 static uint8_t *receiveAddr = 0;
@@ -34,6 +39,8 @@ void usbSetup()
 void usbLoop()
 {
 	usbPoll();
+
+	isConnected = currentMillis <= lastHeartbeatMillis + 10000;
 }
 
 usbMsgLen_t usbFunctionSetup(uchar data[8])
@@ -67,7 +74,7 @@ uint8_t usbFunctionWrite(uint8_t *data, uint8_t len)
 	// Parse the read packet
 	if(!receiveBytesRemaining) {
 		countdownValue = receiveBuffer[0];
-		digitalWrite(1, countdownValue < 2);
+		lastHeartbeatMillis = currentMillis;
 	}
 
 	return !receiveBytesRemaining;
