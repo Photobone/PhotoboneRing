@@ -23,10 +23,11 @@ float BLACK[] = {0.0f, 0.0f, 0.0f};
 	currentRgb[1] = rgb[1] * factor;
 	currentRgb[2] = rgb[2] * factor;
 
+	uint8_t i = 0;
+
 	if (cond)
 	{
-		uint8_t i = 0;
-		for (; progress / UP_DELAY_MS < i; i++)
+		for (; i < progress / UP_DELAY_MS; i++)
 		{
 			storeCurrentRgb(i);
 		}
@@ -34,18 +35,11 @@ float BLACK[] = {0.0f, 0.0f, 0.0f};
 		currentRgb[0] = 0.0f;
 		currentRgb[1] = 0.0f;
 		currentRgb[2] = 0.0f;
-
-		for (; i < NUMPIXELS; i++)
-		{
-			storeCurrentRgb(i);
-		}
 	}
-	else
+
+	for (; i < NUMPIXELS; i++)
 	{
-		for (int i = 0; i < NUMPIXELS; i++)
-		{
-			storeCurrentRgb(i);
-		}
+		storeCurrentRgb(i);
 	}
 }
 
