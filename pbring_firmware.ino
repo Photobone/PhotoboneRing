@@ -3,12 +3,15 @@
 #include "led.h"
 
 void setup() {
+	// Init leds first so that the USB has no interruptions after setup
 	ledSetup();
-	usbSetup();
+
+	//usbSetup();
 }
 
 void loop() {
 	currentMillis = millis();
-	usbLoop();
+
+	//usbLoop();
 	ledLoop();
 }

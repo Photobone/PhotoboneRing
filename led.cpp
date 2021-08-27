@@ -59,29 +59,28 @@ void storeCurrentRgb(uint8_t pixelIx)
 void ledSetup()
 {
 	// Write low
-	PORTB &= ~_BV(PB0);
+	PORTB &= ~_BV(PB1);
 
 	// Mark port 0 (MOSI) output
-	DDRB |= _BV(PB0) | _BV(PB2);
+	DDRB = _BV(DDB1);
+
+	// No interrupts for timer 0
+	//TIMSK = 0;
 
 	// Timer 0 CTC mode
 	TCCR0A = _BV(WGM01);
 
-	// No timer prescaler
-	TCCR0B = 0;
+	// IO clk, no prescaling
+	TCCR0B = _BV(CS00);
 
 	// Divide by 5; 16.5 Mhz / 5 = 3,3 Mhz; 4 bits per one output byte
-	OCR0A = 5;
-
-	// No interrupts for timer 0
-	TIMSK = 0;
+	OCR0A = 4;
 }
 
 // MSB first, 1000 = low, 1100 = high
 static const uint8_t ledBitsOut[4] = {
-	0b10001000, 0b10001100, 0b11001000, 0b11001100
-};
- 
+		0b10001000, 0b10001100, 0b11001000, 0b11001100};
+
 void ledLoop()
 {
 	static unsigned long lastMillis = 0;
@@ -95,38 +94,39 @@ void ledLoop()
 	// Update pixel data
 	updateAnimation();
 
-	// Loop USB, try to keep it alive
-	usbLoop();
+	// Disable interrupts
+	cli();
 
 	// Upload the data
-	if(true) {
-		// Disable interrupts
-		//cli();
-
-		for(uint8_t byteI = 0; byteI < NUMBYTES; byteI++) {
+	if (true)
+	{
+		for (uint8_t byteI = 0; byteI < NUMBYTES; byteI++)
+		{
 			const uint8_t byteData = pixelsData[byteI];
 
-			for(uint8_t bitsI = 0; bitsI < 8; bitsI += 2) {
-				const uint8_t bitsData = (byteData << bitsI) >> 6;
-
-				// Reset USI counter, reset all flags, reset counter overflow (by setting it to 1)
-				USISR = _BV(USIOIF);
-
-				// Write data to be sent
-				USIDR = bitsData;
-
+			for (uint8_t bitsI = 0; bitsI < 8; bitsI += 2)
+			{
 				// Enable USI clock from Timer0 source, three wire mode
 				USICR = _BV(USICS0) | _BV(USIWM0);
 
+				// Reset USI counter, reset all flags, reset counter overflow (by setting it to 1)
+				USISR = _BV(USIOIF);
+				USIDR = ledBitsOut[(byteData << bitsI) >> 6];
+
 				// Loop while bit is not sent
-				while(!(USISR & _BV(USIOIF))) ;
+				//while(!(USISR & _BV(USIOIF))) USICR |= _BV(USICLK);
+				while (!(USISR & _BV(USIOIF)))
+					;
 
 				// Disable USI
 				USICR = 0;
 			}
 		}
+	}
+	else
+	{
 
-		/*volatile uint16_t
+		volatile uint16_t
 				i = NUMBYTES; // Loop counter
 
 		volatile uint8_t
@@ -134,8 +134,8 @@ void ledLoop()
 				b = *ptr++;				 // Current byte value
 
 		const volatile uint8_t
-				hi = PORTB | 1,	 // PORT w/output bit set high
-				lo = PORTB & ~1; // PORT w/output bit set low
+				hi = PORTB | 2,	 // PORT w/output bit set high
+				lo = PORTB & ~2; // PORT w/output bit set low
 
 		volatile uint8_t
 				next = lo,
@@ -173,8 +173,9 @@ void ledLoop()
 					[count] "+w"(i)
 				: [ptr] "e"(ptr),
 					[hi] "r"(hi),
-					[lo] "r"(lo));*/
-
-		//sei();
+					[lo] "r"(lo));
 	}
+
+	// Enable interrupts
+	sei();
 }
