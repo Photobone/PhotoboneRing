@@ -62,7 +62,7 @@ void ledSetup()
 	PORTB &= ~_BV(PB0);
 
 	// Mark port 0 (MOSI) output
-	DDRB |= _BV(PB0);
+	DDRB |= _BV(PB0) | _BV(PB2);
 
 	// Timer 0 CTC mode
 	TCCR0A = _BV(WGM01);
@@ -81,7 +81,7 @@ void ledSetup()
 static const uint8_t ledBitsOut[4] = {
 	0b10001000, 0b10001100, 0b11001000, 0b11001100
 };
-
+ 
 void ledLoop()
 {
 	static unsigned long lastMillis = 0;
@@ -109,14 +109,14 @@ void ledLoop()
 			for(uint8_t bitsI = 0; bitsI < 8; bitsI += 2) {
 				const uint8_t bitsData = (byteData << bitsI) >> 6;
 
-				// Reset USI counter, reset all flags
-				USISR = 0;
-
-				// Enable USI clock from Timer0 source, three wire mode
-				USICR = _BV(USICS0) | _BV(USIWM0);
+				// Reset USI counter, reset all flags, reset counter overflow (by setting it to 1)
+				USISR = _BV(USIOIF);
 
 				// Write data to be sent
 				USIDR = bitsData;
+
+				// Enable USI clock from Timer0 source, three wire mode
+				USICR = _BV(USICS0) | _BV(USIWM0);
 
 				// Loop while bit is not sent
 				while(!(USISR & _BV(USIOIF))) ;
