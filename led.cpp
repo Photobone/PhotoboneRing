@@ -24,7 +24,7 @@ void hsv2Rgb(float h, float s, float v, float *rgb)
 	const float X = C * (1 - abs(fmod(h * 6, 2) - 1));
 
 	float r, g, b;
-	
+
 	if (h < H_60)
 		r = C, g = X, b = 0;
 
@@ -58,12 +58,29 @@ void storeCurrentRgb(uint8_t pixelIx)
 
 void ledSetup()
 {
-	// Mark port 0 as output
-	DDRB |= 1;
-
 	// Write low
-	PORTB &= ~1;
+	PORTB &= ~_BV(PB0);
+
+	// Mark port 0 (MOSI) output
+	DDRB |= _BV(PB0);
+
+	// Timer 0 CTC mode
+	TCCR0A = _BV(WGM01);
+
+	// No timer prescaler
+	TCCR0B = 0;
+
+	// Divide by 5; 16.5 Mhz / 5 = 3,3 Mhz; 4 bits per one output byte
+	OCR0A = 5;
+
+	// No interrupts for timer 0
+	TIMSK = 0;
 }
+
+// MSB first, 1000 = low, 1100 = high
+static const uint8_t ledBitsOut[4] = {
+	0b10001000, 0b10001100, 0b11001000, 0b11001100
+};
 
 void ledLoop()
 {
@@ -86,7 +103,30 @@ void ledLoop()
 		// Disable interrupts
 		//cli();
 
-		volatile uint16_t
+		for(uint8_t byteI = 0; byteI < NUMBYTES; byteI++) {
+			const uint8_t byteData = pixelsData[byteI];
+
+			for(uint8_t bitsI = 0; bitsI < 8; bitsI += 2) {
+				const uint8_t bitsData = (byteData << bitsI) >> 6;
+
+				// Reset USI counter, reset all flags
+				USISR = 0;
+
+				// Enable USI clock from Timer0 source, three wire mode
+				USICR = _BV(USICS0) | _BV(USIWM0);
+
+				// Write data to be sent
+				USIDR = bitsData;
+
+				// Loop while bit is not sent
+				while(!(USISR & _BV(USIOIF))) ;
+
+				// Disable USI
+				USICR = 0;
+			}
+		}
+
+		/*volatile uint16_t
 				i = NUMBYTES; // Loop counter
 
 		volatile uint8_t
@@ -133,7 +173,7 @@ void ledLoop()
 					[count] "+w"(i)
 				: [ptr] "e"(ptr),
 					[hi] "r"(hi),
-					[lo] "r"(lo));
+					[lo] "r"(lo));*/
 
 		//sei();
 	}
