@@ -4,14 +4,17 @@
 #include "usb.h"
 #include <Arduino.h>
 
-float GREEN[] = {0.0f, 1.0f, 0.0f};
-float RED[] = {1.0f, 0.0f, 0.0f};
-float WHITE[] = {1.0f, 1.0f, 1.0f};
-float BLACK[] = {0.0f, 0.0f, 0.0f};
+const float GREEN[] = {0.0f, 1.0f, 0.0f};
+const float RED[] = {1.0f, 0.0f, 0.0f};
+const float WHITE[] = {1.0f, 1.0f, 1.0f};
+const float BLACK[] = {0.0f, 0.0f, 0.0f};
+
+ANIMATION lastAnimation = NULL_BLACK;
+long lastAnimationStart = 0;
+long lastFrameTime = 0;
 
 /*private*/ void systemFlash(uint16_t progress, const float *rgb)
 {
-
 	const int UP_DELAY_MS = 13;
 	const int ALL_ON_MS = 100;
 	const int TWI_MS = 150;
@@ -20,7 +23,7 @@ float BLACK[] = {0.0f, 0.0f, 0.0f};
 
 	const bool cond = progress < twiStart;
 
-	const float factor = cond ? 1 : max(0, static_cast<float>(TWI_MS - (progress - twiStart)) / TWI_MS);
+	const float factor = cond ? 1 : max(0, (TWI_MS - (static_cast<float>(progress) - twiStart)) / TWI_MS);
 	currentRgb[0] = rgb[0] * factor;
 	currentRgb[1] = rgb[1] * factor;
 	currentRgb[2] = rgb[2] * factor;
@@ -43,6 +46,9 @@ float BLACK[] = {0.0f, 0.0f, 0.0f};
 	{
 		storeCurrentRgb(i);
 	}
+
+	if(progress > 2200)
+		lastAnimationStart = currentMillis;
 }
 
 #define IDLE_RAINBOW_SPEED 0.0001f
@@ -105,10 +111,6 @@ float rainbowOffset = 0;
 }
 
 #include "animation_resolve.inc.h"
-
-ANIMATION lastAnimation = NULL_BLACK;
-long lastAnimationStart = 0;
-long lastFrameTime = 0;
 
 void updateAnimation()
 {

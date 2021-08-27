@@ -3,6 +3,7 @@
 #include <stdint.h>
 #include <Arduino.h>
 
+#include "usb.h"
 #include "common.h"
 #include "animation.h"
 
@@ -77,10 +78,13 @@ void ledLoop()
 	// Update pixel data
 	updateAnimation();
 
+	// Loop USB, try to keep it alive
+	usbLoop();
+
 	// Upload the data
-	{
+	if(true) {
 		// Disable interrupts
-		cli();
+		//cli();
 
 		volatile uint16_t
 				i = NUMBYTES; // Loop counter
@@ -131,6 +135,6 @@ void ledLoop()
 					[hi] "r"(hi),
 					[lo] "r"(lo));
 
-		sei();
+		//sei();
 	}
 }
