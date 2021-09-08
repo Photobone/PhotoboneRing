@@ -2,6 +2,8 @@
 
 #include <FastLED.h>
 
+#define TEST_MODE false
+
 #define LED_COUNT 24
 #define LED_PIN 2
 
@@ -16,13 +18,14 @@ enum Mode
 	mNoConnection,
 	mIdle,
 	mPreview,
-	mCountdown
+	mCountdown,
+	mShooting
 };
 
 Mode mode;
 
-/// In eights of a second
-uint8_t countdownValue = 0;
+bool signalReceived = false;
+uint8_t countdownValue = 0; ///< In eights of a second
 
 int16_t animationProgress = 0;
 
@@ -36,31 +39,62 @@ uint8_t saturation;
 void setup()
 {
 	FastLED.addLeds<NEOPIXEL, LED_PIN>(rgbData, LED_COUNT);
+
+	// Only output is PB2
+	DDRB = _BV(PB2);
 }
 
 void decideMode()
 {
-	const unsigned long mls = millis() % 12000;
-	if (mls < 2000)
+	if (TEST_MODE)
 	{
-		mode = mNoInternalConnection;
-	}
-	else if (mls < 4000)
-	{
-		mode = mNoConnection;
-	}
-	else if (mls < 6000)
-	{
-		mode = mIdle;
-	}
-	else if (mls < 8000)
-	{
-		mode = mPreview;
+		const unsigned long mls = millis() % 12000;
+		if (mls < 2000)
+		{
+			mode = mNoInternalConnection;
+		}
+		else if (mls < 4000)
+		{
+			mode = mNoConnection;
+		}
+		else if (mls < 6000)
+		{
+			mode = mIdle;
+		}
+		else if (mls < 8000)
+		{
+			mode = mPreview;
+		}
+		else if (mls < 10000)
+		{
+			mode = mCountdown;
+			countdownValue = (4000 - (mls - 8000)) / (1000 / 8);
+		}
+		else
+		{
+			mode = mShooting;
+			countdownValue = 0;
+		}
 	}
 	else
 	{
-		mode = mCountdown;
-		countdownValue = (4000 - (mls - 8000)) / (1000 / 8);
+		if (!signalReceived)
+			mode = mNoInternalConnection;
+
+		else if (countdownValue == -3)
+			mode = mNoConnection;
+
+		else if (countdownValue == -1)
+			mode = mIdle;
+
+		else if (countdownValue == -2)
+			mode = mPreview;
+
+		else if (countdownValue > 8)
+			mode = mCountdown;
+
+		else
+			mode = mShooting;
 	}
 }
 
@@ -96,13 +130,47 @@ void setupAnimation()
 
 	case mCountdown:
 		segmentCount = 3;
-		animationIncrementInteval = lerp8by8(4, 16, min(255.0, constrain(countdownValue / 8.0 - 1.0, 0, 2) / 2.0 * 255.0));
+		animationIncrementInteval = lerp8by8(1, 16, min(255.0, constrain(countdownValue / 8.0 - 2.0, 0, 2) / 2.0 * 255.0));
+		break;
+
+	case mShooting:
+		segmentCount = 0;
+		animationIncrementInteval = 1;
+		saturation = 0;
 		break;
 	}
 }
 
+void receiveData()
+{
+	const bool clockPinValue = (PORTB >> 1) & 1;
+	static bool prevClockPinValue = clockPinValue;
+
+	if (clockPinValue == prevClockPinValue)
+		return;
+
+	prevClockPinValue = clockPinValue;
+
+	const bool dataPinValue = PORTB & 1;
+	static bool prevDataPinValue = !dataPinValue;
+	static uint8_t receiveBuffer = 0;
+
+	// Sent the same value twice - finished receiving the message
+	if (dataPinValue == prevDataPinValue)
+	{
+		signalReceived = true;
+		countdownValue = receiveBuffer;
+		receiveBuffer = 0;
+		return;
+	}
+
+	prevDataPinValue = dataPinValue;
+	receiveBuffer = (receiveBuffer << 1) | dataPinValue;
+}
+
 void loop()
 {
+	receiveData();
 	decideMode();
 	setupAnimation();
 
@@ -127,7 +195,7 @@ void loop()
 		for (uint8_t i = 0; i < LED_COUNT; i++)
 		{
 			const uint8_t diff = abs(static_cast<int8_t>(i * LED_INTERVAL * segmentCount - static_cast<uint8_t>(animationProgress)));
-			const uint8_t value = max(0, 255 - static_cast<int16_t>(diff) * 3);
+			const uint8_t value = max(0, 255 - static_cast<int16_t>(diff) * (segmentCount == 1 ? 5 : 3));
 			const uint8_t hue = useConstHue ? constHue : i * LED_INTERVAL + static_cast<uint8_t>(animationProgress);
 			hsvData[i] = CHSV(hue, saturation, value);
 		}
