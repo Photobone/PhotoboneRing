@@ -58,28 +58,28 @@ void storeCurrentRgb(uint8_t pixelIx)
 
 void ledSetup()
 {
+
 	// Write low
 	PORTB &= ~_BV(PB1);
 
 	// Mark port 0 (MOSI) output
 	DDRB = _BV(DDB1);
 
-	// No interrupts for timer 0
-	//TIMSK = 0;
+	if (false)
+	{
+		// No interrupts for timer 0
+		//TIMSK = 0;
 
-	// Timer 0 CTC mode
-	TCCR0A = _BV(WGM01);
+		// Timer 0 CTC mode
+		TCCR0A = _BV(WGM01);
 
-	// IO clk, no prescaling
-	TCCR0B = _BV(CS00);
+		// IO clk, no prescaling
+		TCCR0B = _BV(CS00);
 
-	// Divide by 5; 16.5 Mhz / 5 = 3,3 Mhz; 4 bits per one output byte
-	OCR0A = 4;
+		// Divide by 5; 16.5 Mhz / 5 = 3,3 Mhz; 4 bits per one output byte
+		OCR0A = 2;
+	}
 }
-
-// MSB first, 1000 = low, 1100 = high
-static const uint8_t ledBitsOut[4] = {
-		0b10001000, 0b10001100, 0b11001000, 0b11001100};
 
 void ledLoop()
 {
@@ -95,23 +95,27 @@ void ledLoop()
 	updateAnimation();
 
 	// Disable interrupts
-	cli();
+	//cli();
 
 	// Upload the data
-	if (true)
+	if (false)
 	{
-		for (uint8_t byteI = 0; byteI < NUMBYTES; byteI++)
+		// Enable USI clock from Timer0 source, three wire mode
+		USICR = _BV(USICS0) | _BV(USIWM0);
+
+		for (uint8_t byteI = 0; byteI < NUMBYTES / 2; byteI++)
 		{
 			const uint8_t byteData = pixelsData[byteI];
 
-			for (uint8_t bitsI = 0; bitsI < 8; bitsI += 2)
+			for (uint8_t i = 0; i < 8; i++)
 			{
 				// Enable USI clock from Timer0 source, three wire mode
-				USICR = _BV(USICS0) | _BV(USIWM0);
+				//USICR = _BV(USICS0) | _BV(USIWM0);
 
 				// Reset USI counter, reset all flags, reset counter overflow (by setting it to 1)
+				const uint8_t bit = ((byteData >> i) & 1);
+				USIDR = bit ? 0b11110000 : 0b11000000;
 				USISR = _BV(USIOIF);
-				USIDR = ledBitsOut[(byteData << bitsI) >> 6];
 
 				// Loop while bit is not sent
 				//while(!(USISR & _BV(USIOIF))) USICR |= _BV(USICLK);
@@ -119,9 +123,14 @@ void ledLoop()
 					;
 
 				// Disable USI
-				USICR = 0;
+				// USICR = 0;
 			}
 		}
+
+		// Disable USI
+		USICR = 0;
+
+		PORTB &= ~_BV(PB1);
 	}
 	else
 	{
@@ -177,5 +186,5 @@ void ledLoop()
 	}
 
 	// Enable interrupts
-	sei();
+	//sei();
 }
