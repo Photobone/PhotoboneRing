@@ -1,5 +1,10 @@
 2 arduinos: RING and USB
 
+Status:
+Violet: booting/waiting for arduinos to communicate
+Red: not connected with Photobone Studio
+
+
 RING Digispark/Attiny85:
 ============================
 RING P0 - USB P0
