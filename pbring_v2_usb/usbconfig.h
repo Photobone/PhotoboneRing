@@ -227,7 +227,7 @@ section at the end of this file).
  * with libusb: 0x16c0/0x5dc.  Use this VID/PID pair ONLY if you understand
  * the implications!
  */
-#define USB_CFG_DEVICE_ID 0xdf, 0x05
+#define USB_CFG_DEVICE_ID 0xd9, 0x27
 /* 1503 (0x05df)
  * IDs FOR DISCRIMINATION BY TEXTUAL NAME
  * For generic HID class devices (which are NOT mice, keyboards or joysticks)

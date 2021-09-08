@@ -36,6 +36,11 @@ uint8_t segmentCount;
 uint8_t constHue;
 uint8_t saturation;
 
+float mapf(float v, float srcL, float srcH, float tgtL, float tgtH)
+{
+	return tgtL + constrain((v - srcL) / (srcH - srcL), 0.0, 1.0) * (tgtH - tgtL);
+}
+
 void setup()
 {
 	FastLED.addLeds<NEOPIXEL, LED_PIN>(rgbData, LED_COUNT);
@@ -78,7 +83,7 @@ void setupAnimation()
 {
 	animationIncrementInteval = 16;
 	useConstHue = false;
-	segmentCount = 1;
+	segmentCount = 3;
 	constHue = 0;
 	saturation = 255;
 
@@ -88,25 +93,25 @@ void setupAnimation()
 	case mNoInternalConnection:
 		useConstHue = true;
 		constHue = HUE_PURPLE;
+		segmentCount = 1;
 		break;
 
 	case mNoConnection:
 		useConstHue = true;
 		constHue = HUE_RED;
+		segmentCount = 1;
 		break;
 
 	case mIdle:
-		useConstHue = true;
-		saturation = 0;
 		break;
 
 	case mPreview:
-		segmentCount = 2;
+		saturation = 0;
 		break;
 
 	case mCountdown:
-		segmentCount = 3;
-		animationIncrementInteval = lerp8by8(1, 16, min(255.0, constrain(countdownValue / 8.0 - 2.0, 0, 2) / 2.0 * 255.0));
+		animationIncrementInteval = 1.0 / mapf(countdownValue / 8.0, 1, 4, 1.0 / 1, 1.0 / 8);
+		saturation = 0;
 		break;
 
 	case mShooting:
@@ -142,6 +147,7 @@ void receiveData()
 void loop()
 {
 	currentMillis = millis();
+	uint8_t delta = 0;
 
 	decideMode();
 	setupAnimation();
@@ -158,17 +164,26 @@ void loop()
 		while (millisAccum >= animationIncrementInteval)
 		{
 			animationProgress++;
+			delta++;
 			millisAccum -= animationIncrementInteval;
 		}
 	}
 
 	// Animate
-	for (uint8_t i = 0; i < LED_COUNT; i++)
 	{
-		const uint8_t diff = abs(static_cast<int8_t>(i * LED_INTERVAL * segmentCount - static_cast<uint8_t>(animationProgress)));
-		const uint8_t value = max(0, 255 - static_cast<int16_t>(diff) * (segmentCount == 1 ? 5 : 3));
-		const uint8_t hue = useConstHue ? constHue : i * LED_INTERVAL + static_cast<uint8_t>(animationProgress);
-		hsvData[i] = CHSV(hue, saturation, value);
+		static uint8_t actualSaturation = saturation;
+		if (saturation < actualSaturation)
+			actualSaturation -= min(actualSaturation - saturation, delta * 4);
+		else if (saturation > actualSaturation)
+			actualSaturation += min(saturation - actualSaturation, delta * 4);
+
+		for (uint8_t i = 0; i < LED_COUNT; i++)
+		{
+			const uint8_t diff = abs(static_cast<int8_t>(i * LED_INTERVAL * segmentCount - static_cast<uint8_t>(animationProgress)));
+			const uint8_t value = max(0, 255 - static_cast<int16_t>(diff) * (segmentCount == 1 ? 5 : 3));
+			const uint8_t hue = useConstHue ? constHue : i * LED_INTERVAL + static_cast<uint8_t>(animationProgress);
+			hsvData[i] = CHSV(hue, actualSaturation, value);
+		}
 	}
 
 	hsv2rgb_rainbow(hsvData, rgbData, LED_COUNT);
