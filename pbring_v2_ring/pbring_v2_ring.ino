@@ -2,10 +2,8 @@
 
 #include <FastLED.h>
 
-#define TEST_MODE false
-
 #define LED_COUNT 24
-#define LED_PIN 2
+#define LED_PIN 1
 
 #define LED_INTERVAL (256 / LED_COUNT)
 
@@ -29,6 +27,8 @@ uint8_t countdownValue = 0; ///< In eights of a second
 
 int16_t animationProgress = 0;
 
+unsigned long currentMillis = 0, nextDataReceiveMillis = 0;
+
 // Animation config
 uint16_t animationIncrementInteval;
 bool useConstHue;
@@ -40,62 +40,38 @@ void setup()
 {
 	FastLED.addLeds<NEOPIXEL, LED_PIN>(rgbData, LED_COUNT);
 
-	// Only output is PB2
-	DDRB = _BV(PB2);
+	// Only output is PB1 (leds)
+	DDRB = _BV(PB1);
+
+	// No pull down all pins
+	PORTB = 0;
+
+	// USI control register - two wire mode, external clock rising edge
+	USICR = _BV(USIWM1) | _BV(USICS1);
+
+	// Reset USI status
+	USISR = _BV(USIOIF);
 }
 
 void decideMode()
 {
-	if (TEST_MODE)
-	{
-		const unsigned long mls = millis() % 12000;
-		if (mls < 2000)
-		{
-			mode = mNoInternalConnection;
-		}
-		else if (mls < 4000)
-		{
-			mode = mNoConnection;
-		}
-		else if (mls < 6000)
-		{
-			mode = mIdle;
-		}
-		else if (mls < 8000)
-		{
-			mode = mPreview;
-		}
-		else if (mls < 10000)
-		{
-			mode = mCountdown;
-			countdownValue = (4000 - (mls - 8000)) / (1000 / 8);
-		}
-		else
-		{
-			mode = mShooting;
-			countdownValue = 0;
-		}
-	}
+	if (!signalReceived)
+		mode = mNoInternalConnection;
+
+	else if (countdownValue == -3)
+		mode = mNoConnection;
+
+	else if (countdownValue == -1)
+		mode = mIdle;
+
+	else if (countdownValue == -2)
+		mode = mPreview;
+
+	else if (countdownValue > 8)
+		mode = mCountdown;
+
 	else
-	{
-		if (!signalReceived)
-			mode = mNoInternalConnection;
-
-		else if (countdownValue == -3)
-			mode = mNoConnection;
-
-		else if (countdownValue == -1)
-			mode = mIdle;
-
-		else if (countdownValue == -2)
-			mode = mPreview;
-
-		else if (countdownValue > 8)
-			mode = mCountdown;
-
-		else
-			mode = mShooting;
-	}
+		mode = mShooting;
 }
 
 void setupAnimation()
@@ -141,53 +117,34 @@ void setupAnimation()
 	}
 }
 
-uint8_t prevClockValue = 0;
-uint8_t rcvLowData = 0;
 void receiveData()
 {
-	const uint8_t clockValue = (PINB >> 1) & 1;
-
-	if (clockValue == prevClockValue)
+	if (currentMillis < nextDataReceiveMillis)
 		return;
 
-	prevClockValue = clockValue;
+	nextDataReceiveMillis = currentMillis + 100;
 
-	// Clock is on low - just store the data and quit
-	if (clockValue == LOW)
+	// Check counter overflow (means we have received the message)
+	if (USISR & _BV(USIOIF))
 	{
-		rcvLowData = PORTB & 1;
-		return;
-	}
-
-	const uint8_t data = PORTB & 1;
-
-	static uint8_t rcvBitCount = 0;
-	static uint8_t receiveBuffer = 0;
-
-	// Data on clock falling and raising edge differ - finished receiving
-	if (data != rcvLowData)
-	{
-		rcvBitCount = 0;
-		receiveBuffer = 0;
-		return;
-	}
-
-	receiveBuffer = (receiveBuffer << 1) | data;
-	if(++rcvBitCount == 8) {
+		countdownValue = USIBR;
 		signalReceived = true;
-		countdownValue = receiveBuffer;
 	}
+
+	// Reset counter overflow either way (so that we can be sure we always receive data from 0)
+	USISR = _BV(USIOIF);
 }
 
 void loop()
 {
+	currentMillis = millis();
+
 	decideMode();
 	setupAnimation();
 	receiveData();
 
 	// Update animation progress
 	{
-		const unsigned long currentMillis = millis();
 		static unsigned long prevMillis = currentMillis;
 		static uint16_t millisAccum = 0;
 
@@ -202,16 +159,19 @@ void loop()
 	}
 
 	// Animate
+	for (uint8_t i = 0; i < LED_COUNT; i++)
 	{
-		for (uint8_t i = 0; i < LED_COUNT; i++)
-		{
-			const uint8_t diff = abs(static_cast<int8_t>(i * LED_INTERVAL * segmentCount - static_cast<uint8_t>(animationProgress)));
-			const uint8_t value = max(0, 255 - static_cast<int16_t>(diff) * (segmentCount == 1 ? 5 : 3));
-			const uint8_t hue = useConstHue ? constHue : i * LED_INTERVAL + static_cast<uint8_t>(animationProgress);
-			hsvData[i] = CHSV(hue, saturation, value);
-		}
+		const uint8_t diff = abs(static_cast<int8_t>(i * LED_INTERVAL * segmentCount - static_cast<uint8_t>(animationProgress)));
+		const uint8_t value = max(0, 255 - static_cast<int16_t>(diff) * (segmentCount == 1 ? 5 : 3));
+		const uint8_t hue = useConstHue ? constHue : i * LED_INTERVAL + static_cast<uint8_t>(animationProgress);
+		hsvData[i] = CHSV(hue, saturation, value);
 	}
 
 	hsv2rgb_rainbow(hsvData, rgbData, LED_COUNT);
+
+	// This just shows the countdown value in binary on the leds
+	/*for (uint8_t i = 0; i < 8; i++)
+		rgbData[i] = (countdownValue & (1 << i)) ? 0xffffff : 0x000000;*/
+
 	FastLED.show();
 }
