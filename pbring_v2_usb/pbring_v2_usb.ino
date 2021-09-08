@@ -15,7 +15,7 @@ void transmitData()
 	if (currentMillis < nextTransmitMillis)
 		return;
 
-	nextTransmitMillis = currentMillis + 100;
+	nextTransmitMillis = currentMillis + 120;
 
 	uint8_t data = isConnected ? countdownValue : -3;
 	for (uint8_t i = 0; i < 8; i++)
@@ -28,7 +28,7 @@ void transmitData()
 		delayMicroseconds(10);
 
 		// Set the data output
-		PORTB = (PORTB & ~1) | (data & 1);
+		PORTB = (PORTB & ~1) | (data >> 7);
 
 		delayMicroseconds(10);
 
@@ -38,7 +38,7 @@ void transmitData()
 		delayMicroseconds(10);
 
 		// Shift data
-		data >>= 1;
+		data <<= 1;
 	}
 }
 
@@ -55,12 +55,10 @@ void setup()
 		usbDeviceDisconnect();
 
 		// fake USB disconnect for > 250 ms - required in example?
-		uchar i = 0;
-		while (--i)
-			_delay_ms(10);
+		delay(300);
 
 		usbDeviceConnect();
-
+		
 		sei();
 	}
 }

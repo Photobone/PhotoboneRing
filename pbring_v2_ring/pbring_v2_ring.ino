@@ -58,13 +58,13 @@ void decideMode()
 	if (!signalReceived)
 		mode = mNoInternalConnection;
 
-	else if (countdownValue == -3)
+	else if (countdownValue == static_cast<uint8_t>(-3))
 		mode = mNoConnection;
 
-	else if (countdownValue == -1)
+	else if (countdownValue == static_cast<uint8_t>(-1))
 		mode = mIdle;
 
-	else if (countdownValue == -2)
+	else if (countdownValue == static_cast<uint8_t>(-2))
 		mode = mPreview;
 
 	else if (countdownValue > 8)
@@ -122,17 +122,21 @@ void receiveData()
 	if (currentMillis < nextDataReceiveMillis)
 		return;
 
-	nextDataReceiveMillis = currentMillis + 100;
+	nextDataReceiveMillis = currentMillis + 16;
 
 	// Check counter overflow (means we have received the message)
 	if (USISR & _BV(USIOIF))
 	{
-		countdownValue = USIBR;
-		signalReceived = true;
-	}
+		// Ignore first few reports
+		static uint8_t rcvCnt = 0;
+		if (rcvCnt < 8)
+			rcvCnt++;
+		else
+			signalReceived = true;
 
-	// Reset counter overflow either way (so that we can be sure we always receive data from 0)
-	USISR = _BV(USIOIF);
+		countdownValue = USIBR;
+		USISR = _BV(USIOIF);
+	}
 }
 
 void loop()
@@ -170,8 +174,11 @@ void loop()
 	hsv2rgb_rainbow(hsvData, rgbData, LED_COUNT);
 
 	// This just shows the countdown value in binary on the leds
-	/*for (uint8_t i = 0; i < 8; i++)
-		rgbData[i] = (countdownValue & (1 << i)) ? 0xffffff : 0x000000;*/
+	if (0)
+	{
+		for (uint8_t i = 0; i < 8; i++)
+			rgbData[i] = (countdownValue & (1 << i)) ? 0xffffff : 0x000000;
+	}
 
 	FastLED.show();
 }
