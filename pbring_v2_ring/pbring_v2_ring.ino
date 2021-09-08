@@ -36,41 +36,12 @@ uint8_t segmentCount;
 uint8_t constHue;
 uint8_t saturation;
 
-bool rcvLowData = 0;
-uint8_t receiveBuffer = 0;
-void receiveData()
-{
-	const bool clockPinValue = (PORTB >> 1) & 1;
-
-	// Clock is on low - just store the data and quit
-	if (clockPinValue == LOW)
-	{
-		rcvLowData = PORTB & 1;
-		return;
-	}
-	
-	const bool data = PORTB & 1;
-
-	// Data on clock falling and raising edge differ - finished receiving
-	if (data != rcvLowData)
-	{
-		signalReceived = true;
-		countdownValue = receiveBuffer;
-		receiveBuffer = 0;
-		return;
-	}
-
-	receiveBuffer = (receiveBuffer << 1) | data;
-}
-
 void setup()
 {
 	FastLED.addLeds<NEOPIXEL, LED_PIN>(rgbData, LED_COUNT);
 
 	// Only output is PB2
 	DDRB = _BV(PB2);
-
-	attachInterrupt(PCINT1, receiveData, CHANGE);
 }
 
 void decideMode()
@@ -170,10 +141,49 @@ void setupAnimation()
 	}
 }
 
+uint8_t prevClockValue = 0;
+uint8_t rcvLowData = 0;
+void receiveData()
+{
+	const uint8_t clockValue = (PINB >> 1) & 1;
+
+	if (clockValue == prevClockValue)
+		return;
+
+	prevClockValue = clockValue;
+
+	// Clock is on low - just store the data and quit
+	if (clockValue == LOW)
+	{
+		rcvLowData = PORTB & 1;
+		return;
+	}
+
+	const uint8_t data = PORTB & 1;
+
+	static uint8_t rcvBitCount = 0;
+	static uint8_t receiveBuffer = 0;
+
+	// Data on clock falling and raising edge differ - finished receiving
+	if (data != rcvLowData)
+	{
+		rcvBitCount = 0;
+		receiveBuffer = 0;
+		return;
+	}
+
+	receiveBuffer = (receiveBuffer << 1) | data;
+	if(++rcvBitCount == 8) {
+		signalReceived = true;
+		countdownValue = receiveBuffer;
+	}
+}
+
 void loop()
 {
 	decideMode();
 	setupAnimation();
+	receiveData();
 
 	// Update animation progress
 	{

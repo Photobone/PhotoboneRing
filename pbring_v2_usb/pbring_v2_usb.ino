@@ -2,11 +2,30 @@ uint8_t countdownValue = 0;
 
 void transmitData()
 {
-	uint8_t data = countdownValue;
-	for (uin8_t i = 0; i < 8; i++)
+	// Signal begin of packet - low clock, change data, high clock
+	PORTB &= ~_BV(PB1);
+	delayMicroseconds(500);
+
+	PORTB ^= _BV(PB0);
+	PORTB |= _BV(PB1);
+	delayMicroseconds(500);
+
+	uint8_t data = -1;//countdownValue;
+	for (uint8_t i = 0; i < 8; i++)
 	{
-		PORTB = (PORTB & ~1) | ((data >> 7) & 1);
-		PORTB ^= _BV(PB1);
+		// Set the data output
+		PORTB = (PORTB & ~1) | (data >> 7);
+
+		// Clock low
+		PORTB &= ~_BV(PB1);
+		delayMicroseconds(500);
+
+		// Clock high
+		PORTB |= _BV(PB1);
+		delayMicroseconds(500);
+
+		// Shift data
+		data <<= 1;
 	}
 }
 
