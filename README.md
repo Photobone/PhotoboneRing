@@ -10,8 +10,8 @@ The firmware is using the [V-USB](https://www.obdev.at/products/vusb/index.html)
 * WS2812 (not WS2812B - you might need to change some code for that) 24-LED ring (different LED count theoretically possible when adjusting source code)
 
 ## Status indication
-Violet: booting/waiting for arduinos to communicate
-Red: not connected with Photobone Studio
+* Violet: booting/waiting for arduinos to communicate
+* Red: not connected with Photobone Studio
 
 # Pinout
 * RING - Arduino controlling the ring
