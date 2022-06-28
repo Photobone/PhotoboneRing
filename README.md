@@ -19,18 +19,18 @@ Red: not connected with Photobone Studio
 * LED - The LED ring itself
 
 ## RING Digispark/Attiny85:
-RING P0 - USB P0
-RING P1 - LED DI
-RING P2 - USB P1
+* RING P0 - USB P0
+* RING P1 - LED DI
+* RING P2 - USB P1
 
-RING 5V - USB 5V
-RING GND - USB GND
+* RING 5V - USB 5V
+* RING GND - USB GND
 
 ## USB Digispark/Attiny85:
-USB P0 - RING P0
-USB P1 - RING P2
-USB P4 - USB +
-USB P5 - USB -
+* USB P0 - RING P0
+* USB P1 - RING P2
+* USB P4 - USB +
+* USB P5 - USB -
 
-RING 5V - USB 5V
-RING GND - USB GND
+* RING 5V - USB 5V
+* RING GND - USB GND
