@@ -18,7 +18,7 @@ The firmware is using the [V-USB](https://www.obdev.at/products/vusb/index.html)
 * USB - Arduino controlling the usb
 * LED - The LED ring itself
 
-## RING Digispark/Attiny85:
+#### RING Digispark/Attiny85:
 * RING P0 - USB P0
 * RING P1 - LED DI
 * RING P2 - USB P1
@@ -26,7 +26,7 @@ The firmware is using the [V-USB](https://www.obdev.at/products/vusb/index.html)
 * RING 5V - USB 5V
 * RING GND - USB GND
 
-## USB Digispark/Attiny85:
+#### USB Digispark/Attiny85:
 * USB P0 - RING P0
 * USB P1 - RING P2
 * USB P4 - USB +
