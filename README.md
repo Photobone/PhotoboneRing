@@ -7,7 +7,7 @@ The firmware is using the [V-USB](https://www.obdev.at/products/vusb/index.html)
 * 2 ATTINY85 arduinos: one controlling ring, one communicating through USB with PC
 	* The arduinos are connected as described in the Pinout section
 
-* WS2812 (not WS2812B! - you might need to change some code for that) 24-LED ring (different LED count theoretically possible when adjusting source code)
+* WS2812 (not WS2812B - you might need to change some code for that) 24-LED ring (different LED count theoretically possible when adjusting source code)
 
 ## Status indication
 Violet: booting/waiting for arduinos to communicate
