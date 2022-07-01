@@ -14,23 +14,21 @@ The firmware is using the [V-USB](https://www.obdev.at/products/vusb/index.html)
 * Red: not connected with Photobone Studio
 
 # Pinout
-* RING - Arduino controlling the ring
-* USB - Arduino controlling the usb
-* LED - The LED ring itself
+* ARD_RING - Arduino controlling the ring
+* ARD_USB - Arduino controlling the usb
+* USB_PORT - connection with the USB port (no need to wire anything, is done on the board itself)
+* LED_RING - The LED ring itself
 
-#### RING Digispark/Attiny85:
-* RING P0 - USB P0
-* RING P1 - LED DI
-* RING P2 - USB P1
+#### ARD_RING Digispark/Attiny85:
+* ARD_RING P0 - ARD_USB P0
+* ARD_RING P1 - LED_RINGDI
+* ARD_RING P2 - ARD_USB P1
 
-* RING 5V - USB 5V
-* RING GND - USB GND
+* ARD_RING 5V - ARD_USB 5V - LED +
+* ARD_RING GND - ARD_USB GND - LED -
 
-#### USB Digispark/Attiny85:
-* USB P0 - RING P0
-* USB P1 - RING P2
-* USB P4 - USB +
-* USB P5 - USB -
-
-* RING 5V - USB 5V
-* RING GND - USB GND
+#### ARD_USB Digispark/Attiny85:
+* ARD_USB P0 - ARD_RING P0
+* ARD_USB P1 - ARD_RING P2
+* ARD_USB P4 - USB_PORT +
+* ARD_USB P5 - USB_PORT -
