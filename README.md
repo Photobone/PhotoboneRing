@@ -24,8 +24,8 @@ The firmware is using the [V-USB](https://www.obdev.at/products/vusb/index.html)
 * ARD_RING P1 - LED_RINGDI
 * ARD_RING P2 - ARD_USB P1
 
-* ARD_RING 5V - ARD_USB 5V - LED +
-* ARD_RING GND - ARD_USB GND - LED -
+* ARD_RING 5V - ARD_USB 5V - LED_RING V+
+* ARD_RING GND - ARD_USB GND - LED_RING GND
 
 #### ARD_USB Digispark/Attiny85:
 * ARD_USB P0 - ARD_RING P0
