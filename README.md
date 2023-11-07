@@ -2,6 +2,7 @@
 LED Ring project to be used together with Photobone Studio.
 
 The firmware is using the [V-USB](https://www.obdev.at/products/vusb/index.html) library under the GPL v2 license. This project itself is also published under the GPL v2 license.
+Also, you gotta download Fastled in the arduino library manager.
 
 ## Required components
 * 2 ATTINY85 arduinos: one controlling ring, one communicating through USB with PC
